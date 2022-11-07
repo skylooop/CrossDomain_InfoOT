@@ -3,7 +3,7 @@ import scipy
 import argparse
 
 from sklearn.neighbors import KNeighborsClassifier
-from infoot import FusedInfoOT
+from infoot import FusedInfoOT, InfoOT
 
 def get_acc(X_train, Y_train, X_test, Y_test):
     knn = KNeighborsClassifier(n_neighbors=1)
@@ -22,12 +22,12 @@ args = parser.parse_args()
 np.random.seed(args.rs)
 
 # load data
-mat1 = scipy.io.loadmat('decaf6/'+args.src+'_decaf.mat')
-mat2 = scipy.io.loadmat('decaf6/'+args.tgt+'_decaf.mat')
+mat1 = scipy.io.loadmat('/home/m_bobrin/CrossDomain_InfoOT/decaf6/'+args.src+'_decaf.mat')
+mat2 = scipy.io.loadmat('/home/m_bobrin/CrossDomain_InfoOT/decaf6/'+args.tgt+'_decaf.mat')
 
-X1 = mat1['feas']
+X1 = mat1['feas'] # (1123, 4096) - same space
 Y1 = mat1['labels'].reshape(-1)
-X2 = mat2['feas']
+X2 = mat2['feas'] # (157, 4096)
 Y2 = mat2['labels'].reshape(-1)
 
 # random shuffle target data
@@ -35,9 +35,11 @@ idx = np.array(range(len(X2)))
 np.random.shuffle(idx)
 X2, Y2 = X2[idx], Y2[idx]
 
-X2_train = X2[:int(len(X2)*0.9)]
-Y2_train = Y2[:int(len(X2)*0.9)]
-X2_test = X2[int(len(X2)*0.9):]
+
+# Make test and train from target distribution to check
+X2_train = X2[:int(len(X2)*0.9)] # (141, 4096)
+Y2_train = Y2[:int(len(X2)*0.9)] 
+X2_test = X2[int(len(X2)*0.9):] # (16, 4096)
 Y2_test = Y2[int(len(X2)*0.9):]
 
 ot = FusedInfoOT(X1, X2_train, h=0.5, Ys=Y1)

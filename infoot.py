@@ -78,7 +78,7 @@ def migrad(P, Kx, Ky):
     f_y = Ky.sum(1) / Ky.shape[1]
     f_x_f_y = np.outer(f_x, f_y)
     constC = np.zeros((len(Kx), len(Ky)))
-    # there's a negative sign in ot.gromov.tensor_product
+    # there's a negative sign in ot.gromov.tensor_product 
     f_xy = -ot.gromov.tensor_product(constC, Kx, Ky, P)
     P_f_xy = P / f_xy
     P_grad = -ot.gromov.tensor_product(constC, Kx, Ky, P_f_xy)
@@ -121,14 +121,14 @@ class FusedInfoOT():
         self.lam = lam
         self.reg = reg
 
-        # init kernel
+        # init kernel and pairwise dist between source and target
         self.C = pairwise_distances(Xs, Xt)
         if Ys is not None:
             Zs = np.concatenate((Xs, Ys.reshape(-1, 1)), axis=1)
-            self.Cs = pairwise_distances(Zs, Zs, metric=dist)
+            self.Cs = pairwise_distances(Zs, Zs, metric=dist) # (1123, 1123)
         else:
             self.Cs = pairwise_distances(Xs, Xs)
-        self.Ct = pairwise_distances(Xt, Xt)
+        self.Ct = pairwise_distances(Xt, Xt) # (141, 141)
         self.Ks, self.Kt = compute_kernel(self.Cs, self.Ct, h)
         self.P = None
 
@@ -136,14 +136,14 @@ class FusedInfoOT():
         '''
         solve projected gradient descent via sinkhorn iteration
         '''
-        p = np.zeros(len(self.Xs)) + 1. / len(self.Xs)
-        q = np.zeros(len(self.Xt)) + 1. / len(self.Xt)
-        P = np.outer(p, q)
+        p = np.zeros(len(self.Xs)) + 1. / len(self.Xs) # (1123, )
+        q = np.zeros(len(self.Xt)) + 1. / len(self.Xt) # (141, )
+        P = np.outer(p, q) # (1123, 141)
         if verbose:
             print('solve projected gradient descent...')
             for i in tqdm(range(numIter)):
                 grad_P = migrad(P, self.Ks, self.Kt)
-                P = ot.bregman.sinkhorn(p, q, self.C + self.lam * grad_P, reg=self.reg)
+                P = ot.bregman.sinkhorn(p, q, self.C + self.lam * grad_P, reg=self.reg) #eq 4 from paper
         else:
             for i in range(numIter):
                 grad_P = migrad(P, self.Ks, self.Kt)
